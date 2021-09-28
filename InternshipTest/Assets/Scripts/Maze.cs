@@ -1,247 +1,290 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+
+[System.Serializable]
+public class Cell
+{
+	public bool visited;
+	public GameObject north;//1
+	public GameObject east;//2
+	public GameObject west;//3
+	public GameObject south;//4
+
+}
 
 public class Maze : MonoBehaviour
 {
-    [System.Serializable]
-    public class Cell
-    {
-        public bool visited = false;
-        public GameObject north;
-        public GameObject south;
-        public GameObject east;
-        public GameObject west;
+		[SerializeField] Camera camera;
+		[SerializeField] InputField RowInput;
+		[SerializeField] InputField ColumnInput;
+		[SerializeField] GameObject wall;
+		private GameObject wallHolder, tempWall;
+		private int row, column;
+		private float wallLength = 1.0f;
+		private Vector3 startPosition;
+		private int currentCell = 0;
+		public Cell[] cells;
+		private int totalCells;
+		private int currentNeighbour = 0;
+		private int backingUp = 0;
+		List<int> cellList;
+		public void GenerateNewMaze()
+		{
+			//Finding the parent object of the walls if exists
+			GameObject previousMaze = GameObject.FindGameObjectWithTag("Walls");
+			try
+			{
+				row = int.Parse(RowInput.text);
+				column = int.Parse(ColumnInput.text);
 
-    }
-
-    public GameObject wall;
-    public float wallLenght = 1.0f;
-    public int xSize = 5;
-    public int ySize = 5;
-    private Vector3 initialPos;
-    private GameObject wallHolder;
-    private Cell[] cells;
-    private int currentCell = 0;
-    private int totalCells;
-    private int visitedCells = 0;
-    private bool startedBulding = false;
-    private int currentNeightbour = 0;
-    private List<int> lastCells;
-    private int backingUp = 0;
-    private int wallToBreak = 0;
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        CreateWalls();
-    }
-
-    void CreateWalls()
-    {
-        wallHolder = new GameObject();
-        wallHolder.name = "Maze";
-
-        initialPos = new Vector3((-xSize / 2) + wallLenght / 2, 0, (-ySize / 2) + wallLenght / 2);
-        Vector3 myPos = initialPos;
-        GameObject tempWall;
-
-        //for X Axis
-        for (int i = 0; i < ySize; i++)
-        {
-            for (int j = 0; j <= xSize; j++)
+			if(row > 250)
             {
-                myPos = new Vector3 (initialPos.x + (j * wallLenght)- wallLenght / 2,0.0f, initialPos.z + (i * wallLenght) - wallLenght / 2);
-                tempWall = Instantiate(wall, myPos, Quaternion.identity) as GameObject;
-                tempWall.transform.parent = wallHolder.transform;
-                
+				row = 250;
+				RowInput.text = "250";
             }
-        }
-
-        //for Y Axis
-        for (int i = 0; i <= ySize; i++)
-        {
-            for (int j = 0; j < xSize; j++)
-            {
-                myPos = new Vector3 (initialPos.x + (j * wallLenght), 0, initialPos.z + (i * wallLenght) - wallLenght);
-                tempWall = Instantiate(wall, myPos, Quaternion.Euler(0, 90, 0)) as GameObject;
-                tempWall.transform.parent = wallHolder.transform;
-
-            }
-        }
-        CreateCells();
-    }
-
-    void CreateCells()
-    {
-        lastCells = new List<int>();
-        lastCells.Clear();
-        totalCells = xSize * ySize;
-        GameObject[] allWalls;
-        int children = wallHolder.transform.childCount;
-        allWalls = new GameObject[children];
-        cells = new Cell[xSize * ySize];
-        int westEastProcess = 0;
-        int childProcess = 0;
-        int termCount = 0;
-
-        //Get All Children
-        for (int i = 0; i < children; i++)
-        {
-            allWalls[i] = wallHolder.transform.GetChild(i).gameObject;
-        }
-
-        //assign walls to cells
-        for (int cellprocess = 0; cellprocess < cells.Length; cellprocess++)
-        {
-            cells[cellprocess] = new Cell();
-            cells[cellprocess].west = allWalls[westEastProcess];
-            cells[cellprocess].south = allWalls[childProcess + (xSize + 1) * ySize];
-
-            if (termCount == xSize)
-            {
-                westEastProcess += 2;
-                termCount = 0;
-            }
-
-            else
-                westEastProcess++;
-
-            termCount++;
-            childProcess++;
-
-            cells[cellprocess].east = allWalls[westEastProcess];
-            cells[cellprocess].north = allWalls[(childProcess + (xSize + 1) * ySize) + xSize - 1];
-        }
-        CreateMaze();
-    }
-
-    void CreateMaze()
-    {
-        while(visitedCells  < totalCells)
-        {
-            if (startedBulding)
-            {
-                FindNeighbour();
-                if(cells[currentNeightbour].visited == false && cells[currentCell].visited == true)
-                {
-                    BreakWall();
-                    cells[currentNeightbour].visited = true;
-                    visitedCells++;
-                    lastCells.Add(currentCell);
-                    currentCell = currentNeightbour;
-
-                    if(lastCells.Count > 0)
-                    {
-                        backingUp = lastCells.Count - 1;
-                    }
-                }
-            }
-            else
-            {
-                currentCell = Random.Range(0, totalCells);
-                cells[currentCell].visited = true;
-                visitedCells++;
-                startedBulding = true;
-            }
-
-            
-        }
-
-        Debug.Log("finished");
+			if (row < 10)
+			{
+				row = 10;
+				RowInput.text = "10";
+			}
+			if (column > 250)
+			{
+				column = 250;
+				ColumnInput.text = "250";
+			}
+			if (column < 10)
+			{
+				column = 10;
+				ColumnInput.text = "10";
+			}
 
 
+			totalCells = row * column;
+				Transform cameraPosition = camera.transform;
+				int cameraHeight;
+				if (row >= column)
+					cameraHeight = row;
+				else
+					cameraHeight = column;
 
-        FindNeighbour();
-    }
+				cameraPosition.position = new Vector3(0, cameraHeight + 1, 0);
+				//Destroying previous maze if exist
+				if (previousMaze != null)
+				{
+					Destroy(previousMaze);
+				}
+				CreateWall();
+			}
+			catch (System.FormatException e)
+			{
+				Debug.Log(e);
+			}
+		}
+		
+		public void CreateWall()
+		{
+			wallHolder = new GameObject();
+			wallHolder.name = "Walls";
+			wallHolder.tag = "Walls";
 
-    void BreakWall()
-    {
-        switch (wallToBreak)
-        {
-            case 1 : Destroy(cells[currentCell].north); break;
-            case 2: Destroy(cells[currentCell].west); break;
-            case 3: Destroy(cells[currentCell].east); break;
-            case 4: Destroy(cells[currentCell].south); break;
-        }
-    }
+			startPosition = new Vector3((-column / 2) + wallLength / 2, 0.0f, (-row / 2) + wallLength / 2);
+			Vector3 myPos = startPosition;
 
-    void FindNeighbour()
-    {
-        int lenght = 0;
-        int[] neighbours = new int[4];
-        int[] connectingWall = new int[4];
-        int check = 0;
+			//for creating columns
+			for (int a = 0; a < row; a++)
+			{
+				for (int b = 0; b <= column; b++)
+				{
+					myPos = new Vector3(startPosition.x + (b * wallLength) - wallLength / 2, 0.0f, startPosition.z + (a * wallLength) - wallLength / 2);
+					tempWall = Instantiate(wall, myPos, Quaternion.identity) as GameObject;
+					tempWall.name = "column " + a + "," + b;
+					tempWall.transform.parent = wallHolder.transform;
+				}
+			}
 
-        //check parameters
-        check = ((currentCell + 1) / xSize);
-        check -= 1;
-        check *= xSize;
-        check += xSize;
+			//for creating rows
+			for (int a = 0; a <= row; a++)
+			{
+				for (int b = 0; b < column; b++)
+				{
+					myPos = new Vector3(startPosition.x + (b * wallLength), 0.0f, startPosition.z + (a * wallLength) - wallLength);
+					tempWall = Instantiate(wall, myPos, Quaternion.Euler(0, 90, 0)) as GameObject;
+					tempWall.name = "row " + a + "," + b;
+					tempWall.transform.parent = wallHolder.transform;
+				}
+			}
+			CreateCells();
+		}
 
-        //east
-        if (currentCell + 1 < totalCells && (currentCell + 1) != check)
-        {
-            if (cells[currentCell + 1].visited == false)
-            {
-                neighbours[lenght] = currentCell + 1;
-                connectingWall[lenght] = 3;
-                lenght++;
-            }
-        }
+		
+		public void CreateCells()
+		{
+			cellList = new List<int>();
+			int children = wallHolder.transform.childCount;
+			GameObject[] allWalls = new GameObject[children];
+			cells = new Cell[totalCells];
 
-        //west
-        if (currentCell - 1 >= 0 && currentCell != check)
-        {
-            if (cells[currentCell - 1].visited == false)
-            {
-                neighbours[lenght] = currentCell - 1;
-                connectingWall[lenght] = 2;
-                lenght++;
-            }
-        }
+			int eastWestProccess = 0;
+			int childProcess = 0;
+			int termCount = 0;
+			int cellProccess = 0;
 
-        //north
-        if (currentCell + xSize < totalCells)
-        {
-            if (cells[currentCell + xSize].visited == false)
-            {
-                neighbours[lenght] = currentCell + xSize;
-                connectingWall[lenght] = 1;
-                lenght++;
-            }
-        }
+			//Assigning all the walls to the allwalls array
+			for (int i = 0; i < children; i++)
+			{
+				allWalls[i] = wallHolder.transform.GetChild(i).gameObject;
+			}
 
-        //south
-        if (currentCell - xSize >= 0)
-        {
-            if (cells[currentCell - xSize].visited == false)
-            {
-                neighbours[lenght] = currentCell - xSize;
-                connectingWall[lenght] = 4;
-                lenght++;
-            }
-        }
+			//Assigning walls to the cells
+			for (int j = 0; j < column; j++)
+			{
+				cells[cellProccess] = new Cell();
 
-       if(lenght != 0)
-        {
-            int theChosenCell = Random.Range(0, lenght);
-            currentNeightbour = neighbours[theChosenCell];
-            wallToBreak = connectingWall[theChosenCell];
-        }
-        else
-        {
-            if (backingUp > 0)
-            {
-                currentCell = lastCells[backingUp];
-                backingUp--;
-            }
-        }
-    }
+				cells[cellProccess].west = allWalls[eastWestProccess];
+				cells[cellProccess].south = allWalls[childProcess + (column + 1) * row];
+				termCount++;
+				childProcess++;
+				cells[cellProccess].north = allWalls[(childProcess + (column + 1) * row) + column - 1];
+				eastWestProccess++;
+				cells[cellProccess].east = allWalls[eastWestProccess];
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-}
+				cellProccess++;
+				if (termCount == column && cellProccess < cells.Length)
+				{
+					eastWestProccess++;
+					termCount = 0;
+					j = -1;
+				}
+
+			}
+			CreateMaze();
+		}
+
+		
+		void GiveMeNeighbour()
+		{
+			int length = 0;
+			int[] neighbour = new int[4];
+			int[] connectingWall = new int[4];
+			int check = 0;
+			check = (currentCell + 1) / column;
+			check -= 1;
+			check *= column;
+			check += column;
+			//north
+			if (currentCell + column < totalCells)
+			{
+				if (cells[currentCell + column].visited == false)
+				{
+					neighbour[length] = currentCell + column;
+					connectingWall[length] = 1;
+					length++;
+				}
+			}
+			//east
+			if (currentCell + 1 < totalCells && (currentCell + 1) != check)
+			{
+				if (cells[currentCell + 1].visited == false)
+				{
+					neighbour[length] = currentCell + 1;
+					connectingWall[length] = 2;
+					length++;
+				}
+			}
+			//west
+			if (currentCell - 1 >= 0 && currentCell != check)
+			{
+				if (cells[currentCell - 1].visited == false)
+				{
+					neighbour[length] = currentCell - 1;
+					connectingWall[length] = 3;
+					length++;
+				}
+			}
+			//south
+			if (currentCell - column >= 0)
+			{
+				if (cells[currentCell - column].visited == false)
+				{
+					neighbour[length] = currentCell - column;
+					connectingWall[length] = 4;
+					length++;
+				}
+			}
+
+			//Getting random neighbour and destroying the wall
+			if (length != 0)
+			{
+				int randomNeighbour = Random.Range(0, length);
+				currentNeighbour = neighbour[randomNeighbour];
+				DestroyWall(connectingWall[randomNeighbour]);
+			}
+			else if (backingUp > 0)
+			{
+				currentCell = cellList[backingUp];
+				backingUp--;
+			}
+		}
+
+		void CreateMaze()
+		{
+			bool startedBuilding = false;
+			int visitedCells = 0;
+			while (visitedCells < totalCells)
+			{
+				if (startedBuilding)
+				{
+					GiveMeNeighbour();
+					if (!cells[currentNeighbour].visited && cells[currentCell].visited)
+					{
+						int randomNeighbour = Random.Range(0, 5);
+						cells[currentNeighbour].visited = true;
+						visitedCells++;
+						cellList.Add(currentCell);
+						currentCell = currentNeighbour;
+
+						if (cellList.Count > 0)
+							backingUp = cellList.Count - 1;
+					}
+				}
+				else
+				{
+					currentCell = Random.Range(0, totalCells);
+					cells[currentCell].visited = true;
+					visitedCells++;
+					startedBuilding = true;
+				}
+			}
+		}
+
+		void DestroyWall(int neighbour)
+		{
+			switch (neighbour)
+			{
+				//case 1 means north wall
+				case 1:
+					Destroy(cells[currentCell].north);
+					break;
+
+				//case 2 means east wall
+				case 2:
+					Destroy(cells[currentCell].east);
+					break;
+
+				//case 3 means west wall
+				case 3:
+					Destroy(cells[currentCell].west);
+					break;
+
+				//case 4 means south wall
+				case 4:
+					Destroy(cells[currentCell].south);
+					break;
+
+				default:
+					break;
+			}
+		}
+	}
