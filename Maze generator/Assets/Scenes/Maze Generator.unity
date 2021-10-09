@@ -524,7 +524,6 @@ GameObject:
   - component: {fileID: 442087921}
   - component: {fileID: 442087920}
   - component: {fileID: 442087919}
-  - component: {fileID: 442087918}
   m_Layer: 5
   m_Name: Rows Input
   m_TagString: Untagged
@@ -553,21 +552,6 @@ RectTransform:
   m_AnchoredPosition: {x: 84.78903, y: -93.654495}
   m_SizeDelta: {x: 114.2632, y: 24.7699}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &442087918
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 442087916}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5b182815822a5d642bcaa885eccb6944, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  RowInput: {fileID: 0}
-  ColumnInput: {fileID: 0}
-  InputSelected: 0
 --- !u!114 &442087919
 MonoBehaviour:
   m_ObjectHideFlags: 0
